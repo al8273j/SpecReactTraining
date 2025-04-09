@@ -1,21 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import axios from 'axios';
 
 const App = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [people, setPeople] = useState([]);
+  const [users, setUsers] = useState([]);
 
-  const addPerson = () => {
-    if (name.trim() !== "") {
-      setPeople([...people, { name, email }]);
-      setName("");
-      setEmail("");
-    }
+  // Fetch users on mount
+  useEffect(() => {
+    axios
+      .get('http://localhost:3001/users') // Replace <url> with your actual route
+      .then(response => {
+        setUsers(response.data);
+      })
+      .catch(error => {
+        console.error('There was an error fetching the users!', error);
+      });
+  }, []);
+
+  // Add user
+  const handleAddUser = () => {
+    if (name.trim() === "") return;
+
+    axios
+      .post('http://localhost:3001/users', { name, email }) // Replace <url>
+      .then(response => {
+        setUsers([...users, response.data]);
+        setName('');
+        setEmail('');
+      })
+      .catch(error => {
+        console.error('There was an error adding the user!', error);
+      });
   };
 
-  const deletePerson = (indexToDelete) => {
-    setPeople(people.filter((_, index) => index !== indexToDelete));
+  // Delete user
+  const deleteSource = (userId) => {
+    axios
+      .delete('http://localhost:3001/users', { data: { id: userId } }) // Replace <url>
+      .then(response => {
+        setUsers(users.filter((user) => user.id !== userId));
+      })
+      .catch(error => {
+        console.error('Error deleting user:', error);
+      });
   };
 
   return (
@@ -49,21 +78,18 @@ const App = () => {
             />
           </InfoBox>
 
-          <AddDesign onClick={addPerson}>
+          <AddDesign onClick={handleAddUser}>
             <AddWord>ADD</AddWord>
           </AddDesign>
         </BlueBox>
 
         <NameWrapper>
-          {people.map((person, index) => (
-            <NameBox key={index}>
+          {users.map((user, index) => (
+            <NameBox key={user.id}>
               <Number>{index + 1}</Number>
-
-              <ActualName>{person.name}</ActualName>
-
-              <Email>{person.email}</Email>
-
-              <DeleteDesign onClick={() => deletePerson(index)}>
+              <ActualName>{user.name}</ActualName>
+              <Email>{user.email}</Email>
+              <DeleteDesign onClick={() => deleteSource(user.id)}>
                 <DeleteWord>DELETE</DeleteWord>
               </DeleteDesign>
             </NameBox>
@@ -74,12 +100,11 @@ const App = () => {
   );
 };
 
-// Styled Components
+// Styled Components (unchanged from your original)
+
 const Main = styled.div`
   background-color: #f5f5f0;
-  height: 100%; 
-
-
+  height: 100%;
 `;
 
 const Logo = styled.img`
@@ -119,7 +144,7 @@ const BlueBox = styled.div`
 const InfoBox = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;  /* Space between label and input */
+  gap: 10px;
 `;
 
 const Label = styled.p`
@@ -130,7 +155,7 @@ const Label = styled.p`
 `;
 
 const Input = styled.input`
-  width: 250px;  /* Adjust width for better alignment */
+  width: 250px;
   padding: 10px;
   border-radius: 10px;
   border: 1px solid #ccc;
